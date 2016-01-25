@@ -23,6 +23,8 @@ import socket
 import re
 # you may use urllib to encode data appropriately
 import urllib
+import urlparse
+
 
 def help():
     print "httpclient.py [GET/POST] [URL]\n"
@@ -37,16 +39,33 @@ class HTTPClient(object):
 
     def connect(self, host, port):
         # use sockets!
-        return None
+        #TODO error handle?
+        return socket.create_connection((host,port))
 
     def get_code(self, data):
-        return None
+        return data.split()[1]
 
-    def get_headers(self,data):
-        return None
+    def get_headers(self, method, url_data):
+        #request line ex. GET / HTTP/1.1
+        request = method
+        if url_data.path == None:
+            request += " / "
+        else:
+            request += " " + url_data.path
+        request += " HTTP/1.1\r\n"
+        ##host
+        host = "Host: " + url_data.netloc + "\r\n"
+        ### connection  maybe????
+        connect_message = "Connection: Close\r\n"
+        ###Accept
+        accept = "*/*\r\n"
+        ####
+        header = request + host + connect_message + accept + "\r\n"
+
+        return header
 
     def get_body(self, data):
-        return None
+        return data.split("\r\n\r\n")[1]
 
     # read everything from the socket
     def recvall(self, sock):
@@ -63,6 +82,14 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         code = 500
         body = ""
+        url_data = urlparse.urlparse(url)
+        connection = self.connect(url_data.hostname, url_data.port)
+        header = self.get_headers("GET", url_data)
+        ####TODO add try
+        connection.sendall(header)
+        response = self.recvall(connection)
+        code = self.get_code(response)
+        body = self.get_body(response)
         return HTTPRequest(code, body)
 
     def POST(self, url, args=None):
@@ -83,6 +110,6 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print client.command( sys.argv[1], sys.argv[2] )
+        print client.command( sys.argv[2], sys.argv[1] )
     else:
         print client.command( command, sys.argv[1] )    
