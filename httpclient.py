@@ -23,6 +23,7 @@ import socket
 import re
 # you may use urllib to encode data appropriately
 import urllib
+import urlparse #### REMOVE AND WRITE YOUR OWN
 
 def help():
     print "httpclient.py [GET/POST] [URL]\n"
@@ -31,6 +32,17 @@ class HTTPResponse(object):
     def __init__(self, code=200, body=""):
         self.code = code
         self.body = body
+
+class myParseUrl(object):
+    def __init__(self, url):
+        #http://stackoverflow.com/a/9531189
+        p = '(?:http.*://)?(?P<host>[^:/ ]+).?(?P<port>[0-9]*).*'
+        m = re.search(p,url)
+        self.hostname = m.group('host') 
+        self.port = m.group('port') 
+        self.path = None #### fix me, should re path
+
+        
 
 class HTTPClient(object):
     #def get_host_port(self,url):
@@ -54,9 +66,9 @@ class HTTPClient(object):
         ##host
         host = "Host: " + url_data.netloc + "\r\n"
         ### connection  maybe????
-        connect_message = "Connection: Close\r\n"
+        connect_message = "" #"Connection: Close\r\n"
         ###Accept
-        accept = "*/*\r\n"
+        accept = "Accept: */*\r\n"
         ####
         header = request + host + connect_message + accept + "\r\n"
 
@@ -64,6 +76,8 @@ class HTTPClient(object):
 
     def get_body(self, data):
         return data.split("\r\n\r\n")[1]
+
+
 
     # read everything from the socket
     def recvall(self, sock):
@@ -78,9 +92,12 @@ class HTTPClient(object):
         return str(buffer)
 
     def GET(self, url, args=None):
+
         code = 500
         body = ""
-        url_data = urlparse.urlparse(url)
+        url_data = myParseUrl(url)
+        if url_data.port is None:
+            port = 80
         connection = self.connect(url_data.hostname, url_data.port)
         header = self.get_headers("GET", url_data)
         ####TODO add try
@@ -88,7 +105,7 @@ class HTTPClient(object):
         response = self.recvall(connection)
         code = self.get_code(response)
         body = self.get_body(response)
-        return HTTPRequest(code, body)
+        return HTTPResponse(int(code), body)
 
     def POST(self, url, args=None):
         code = 500
@@ -108,6 +125,6 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print client.command( sys.argv[1], sys.argv[2] )
+        print client.command( sys.argv[2], sys.argv[1] )
     else:
-        print client.command( command, sys.argv[1] )    
+        print client.command( sys.argv[1], command) 
