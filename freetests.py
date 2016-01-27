@@ -143,6 +143,7 @@ class TestHTTPClient(unittest.TestCase):
         http = httpclass.HTTPClient()
         path = "abcdef/gjkd/dsadas"
         url = "http://%s:%d/%s" % (BASEHOST,BASEPORT, path)
+        print "|",url,"|"
         req = http.GET( url )
         self.assertTrue(req != None, "None Returned!")
         self.assertTrue(req.code == 200)

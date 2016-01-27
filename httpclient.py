@@ -33,16 +33,21 @@ class HTTPResponse(object):
         self.code = code
         self.body = body
 
+
 class myParseUrl(object):
     def __init__(self, url):
-        #http://stackoverflow.com/a/9531189
-        p = '(?:http.*://)?(?P<host>[^:/ ]+).?(?P<port>[0-9]*).*'
+        p = ('(?:http.*://)?'
+             '(?P<host>[^:/ ]+).?'
+             '(?P<port>[0-9]*)'
+             '(?P<path>.*)')
         m = re.search(p,url)
         self.hostname = m.group('host') 
-        self.port = m.group('port') 
-        self.path = None #### fix me, should re path
+        self.port = m.group('port')
+        self.path = m.group('path')
+        self.netloc = self.hostname+":"+self.port
+        if self.port is None:
+            self.port = 80
 
-        
 
 class HTTPClient(object):
     #def get_host_port(self,url):
@@ -55,23 +60,31 @@ class HTTPClient(object):
     def get_code(self, data):
         return data.split()[1]
 
-    def get_headers(self, method, url_data):
+    def get_headers(self, method, url_data, args=None):
         #request line ex. GET / HTTP/1.1
         request = method
-        if url_data.path == None:
+        if not url_data.path:
             request += " / "
         else:
             request += " " + url_data.path
         request += " HTTP/1.1\r\n"
-        ##host
-        host = "Host: " + url_data.netloc + "\r\n"
-        ### connection  maybe????
-        connect_message = "" #"Connection: Close\r\n"
-        ###Accept
-        accept = "Accept: */*\r\n"
-        ####
-        header = request + host + connect_message + accept + "\r\n"
+        ### changed host = "Host: " + url_data.netloc + "\r\n"
+        host = "Host: " + url_data.hostname + "\r\n"
+        if method is "GET":
+            accept = "" #"Accept: */*\n"  ### maybe delete
+            connect_message = "" #"Connection: Close\r\n"
+            header = (request + host + connect_message + accept + "\r\n")
+        elif method is "POST":
+            params = urllib.urlencode(args)
+            content_type = "Content-Type: "
+            content_type += "application/x-www-form-urlencoded\r\n"
+            content_len = "Content-Length: %d" %(len(params))
+            header = (request + host + content_type
+                      + content_len + "\r\n" + params)
+        else:
+            print "ERROR FAILED TERRIBLY not get or post"
 
+        print "|",header,"|"
         return header
 
     def get_body(self, data):
@@ -92,12 +105,9 @@ class HTTPClient(object):
         return str(buffer)
 
     def GET(self, url, args=None):
-
         code = 500
         body = ""
         url_data = myParseUrl(url)
-        if url_data.port is None:
-            port = 80
         connection = self.connect(url_data.hostname, url_data.port)
         header = self.get_headers("GET", url_data)
         ####TODO add try
@@ -105,11 +115,23 @@ class HTTPClient(object):
         response = self.recvall(connection)
         code = self.get_code(response)
         body = self.get_body(response)
+        print code,"\n",body
         return HTTPResponse(int(code), body)
 
     def POST(self, url, args=None):
+
+
+
         code = 500
         body = ""
+        url_data = myParseUrl(url)
+        connection = self.connect(url_data.hostname, url_data.port)
+        header = self.get_headers("POST", url_data, args)
+        ####TODO add try
+        connection.sendall(header)
+        response = self.recvall(connection)
+        code = self.get_code(response)
+        body = self.get_body(response)
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
