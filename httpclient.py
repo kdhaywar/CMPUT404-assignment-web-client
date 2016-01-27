@@ -85,7 +85,7 @@ class HTTPClient(object):
             print "ERROR FAILED TERRIBLY not get or post"
 
         print "|",header,"|"
-        return header
+        return header+"\r\n"
 
     def get_body(self, data):
         return data.split("\r\n\r\n")[1]
@@ -115,7 +115,7 @@ class HTTPClient(object):
         response = self.recvall(connection)
         code = self.get_code(response)
         body = self.get_body(response)
-        print code,"\n",body
+        connection.close()
         return HTTPResponse(int(code), body)
 
     def POST(self, url, args=None):
@@ -132,6 +132,7 @@ class HTTPClient(object):
         response = self.recvall(connection)
         code = self.get_code(response)
         body = self.get_body(response)
+        connection.close()
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
