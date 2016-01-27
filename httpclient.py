@@ -62,30 +62,19 @@ class HTTPClient(object):
 
     def get_headers(self, method, url_data, args=None):
         #request line ex. GET / HTTP/1.1
-        request = method
         if not url_data.path:
-            request += " / "
-        else:
-            request += " " + url_data.path
-        request += " HTTP/1.1\r\n"
-        ### changed host = "Host: " + url_data.netloc + "\r\n"
-        host = "Host: " + url_data.hostname + "\r\n"
-        if method is "GET":
-            accept = "" #"Accept: */*\n"  ### maybe delete
-            connect_message = "" #"Connection: Close\r\n"
-            header = (request + host + connect_message + accept + "\r\n")
-        elif method is "POST":
+            url_data.path = "/"
+        request = "%s %s HTTP/1.1\r\n" %(method, url_data.path)
+        request += "Host: %s\r\n" %(url_data.hostname)
+        request += "Connection: Close\r\n"
+        request += "Accept: */*\r\n" 
+        if method is "POST":
             params = urllib.urlencode(args)
-            content_type = "Content-Type: "
-            content_type += "application/x-www-form-urlencoded\r\n"
-            content_len = "Content-Length: %d" %(len(params))
-            header = (request + host + content_type
-                      + content_len + "\r\n" + params)
-        else:
-            print "ERROR FAILED TERRIBLY not get or post"
-
+            request += "Content-Type: application/x-www-form-urlencoded\r\n"
+            request += "Content-Length: %d\r\n" %(len(params))
+        header = request + "\r\n"
         print "|",header,"|"
-        return header+"\r\n"
+        return header
 
     def get_body(self, data):
         return data.split("\r\n\r\n")[1]
