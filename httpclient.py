@@ -66,14 +66,15 @@ class HTTPClient(object):
             url_data.path = "/"
         request = "%s %s HTTP/1.1\r\n" %(method, url_data.path)
         request += "Host: %s\r\n" %(url_data.hostname)
-        request += "Connection: Close\r\n"
-        request += "Accept: */*\r\n" 
+#        request += "Connection: Close\r\n"
+#        request += "Accept: */*\r\n" 
         if method is "POST":
             params = urllib.urlencode(args)
             request += "Content-Type: application/x-www-form-urlencoded\r\n"
             request += "Content-Length: %d\r\n" %(len(params))
+            request += "\r\n%s\r\n" %(params)
         header = request + "\r\n"
-        print "|",header,"|"
+#        print "|",repr(header),"|"
         return header
 
     def get_body(self, data):
@@ -105,6 +106,7 @@ class HTTPClient(object):
         code = self.get_code(response)
         body = self.get_body(response)
         connection.close()
+        print code
         return HTTPResponse(int(code), body)
 
     def POST(self, url, args=None):
@@ -125,6 +127,8 @@ class HTTPClient(object):
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
+#        print url
+#        print command
         if (command == "POST"):
             return self.POST( url, args )
         else:
