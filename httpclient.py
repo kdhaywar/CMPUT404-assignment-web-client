@@ -36,17 +36,17 @@ class HTTPResponse(object):
 
 class myParseUrl(object):
     def __init__(self, url):
-        p = ('(?:http.*://)?'
-             '(?P<host>[^:/ ]+).?'
-             '(?P<port>[0-9]*)'
-             '(?P<path>.*)')
+        p = '(?:http://)?(?P<host>[^:/ ]+):?(?P<port>[0-9]*)(?P<path>.*)'
         m = re.search(p,url)
+        print m
         self.hostname = m.group('host') 
         self.port = m.group('port')
         self.path = m.group('path')
         self.netloc = self.hostname+":"+self.port
-        if self.port is None:
+        if not self.port:
             self.port = 80
+        if not self.path:
+            self.path = "/"
 
 
 class HTTPClient(object):
@@ -55,27 +55,26 @@ class HTTPClient(object):
     def connect(self, host, port):
         # use sockets!
         #TODO error handle?
-        return socket.create_connection((host,port))
+        conn = socket.create_connection((host,port))
+        return conn
 
     def get_code(self, data):
         return data.split()[1]
 
     def get_headers(self, method, url_data, args=None):
-        #request line ex. GET / HTTP/1.1
-        if not url_data.path:
-            url_data.path = "/"
         request = "%s %s HTTP/1.1\r\n" %(method, url_data.path)
         request += "Host: %s\r\n" %(url_data.hostname)
-#        request += "Connection: Close\r\n"
+        #request += "Content-Length: 0\r\n"
+        request += "Connection: Close\r\n"
+#        request += "Connection: Keep-Alive\r\n"
 #        request += "Accept: */*\r\n" 
-        if method is "POST":
+        if args is not None:
             params = urllib.urlencode(args)
             request += "Content-Type: application/x-www-form-urlencoded\r\n"
             request += "Content-Length: %d\r\n" %(len(params))
             request += "\r\n%s\r\n" %(params)
-        header = request + "\r\n"
-#        print "|",repr(header),"|"
-        return header
+        request += "\r\n"
+        return request
 
     def get_body(self, data):
         return data.split("\r\n\r\n")[1]
@@ -87,6 +86,7 @@ class HTTPClient(object):
         buffer = bytearray()
         done = False
         while not done:
+            #sock.settimeout(1)
             part = sock.recv(1024)
             if (part):
                 buffer.extend(part)
@@ -106,29 +106,22 @@ class HTTPClient(object):
         code = self.get_code(response)
         body = self.get_body(response)
         connection.close()
-        print code
         return HTTPResponse(int(code), body)
 
     def POST(self, url, args=None):
-
-
-
         code = 500
         body = ""
         url_data = myParseUrl(url)
         connection = self.connect(url_data.hostname, url_data.port)
         header = self.get_headers("POST", url_data, args)
-        ####TODO add try
         connection.sendall(header)
         response = self.recvall(connection)
         code = self.get_code(response)
         body = self.get_body(response)
         connection.close()
-        return HTTPResponse(code, body)
+        return HTTPResponse(int(code), body)
 
     def command(self, url, command="GET", args=None):
-#        print url
-#        print command
         if (command == "POST"):
             return self.POST( url, args )
         else:

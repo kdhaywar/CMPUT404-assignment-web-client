@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding: utf-8
 # Copyright 2013 Abram Hindle
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -202,6 +203,7 @@ class TestHTTPClient(unittest.TestCase):
         if (TestHTTPClient.httpd!=None):
             print "HTTP Shutdown in tearDown\n"
             TestHTTPClient.httpd.shutdown()
+            TestHTTPClient.httpd.server_close()
             time.sleep(1)
 
 def test_test_webserver():
