@@ -23,7 +23,7 @@ import socket
 import re
 # you may use urllib to encode data appropriately
 import urllib
-import urlparse #### REMOVE AND WRITE YOUR OWN
+
 
 def help():
     print "httpclient.py [GET/POST] [URL]\n"
@@ -38,7 +38,6 @@ class myParseUrl(object):
     def __init__(self, url):
         p = '(?:http://)?(?P<host>[^:/ ]+):?(?P<port>[0-9]*)(?P<path>.*)'
         m = re.search(p,url)
-        print m
         self.hostname = m.group('host') 
         self.port = m.group('port')
         self.path = m.group('path')
@@ -50,11 +49,7 @@ class myParseUrl(object):
 
 
 class HTTPClient(object):
-    #def get_host_port(self,url):
-
     def connect(self, host, port):
-        # use sockets!
-        #TODO error handle?
         conn = socket.create_connection((host,port))
         return conn
 
@@ -64,13 +59,11 @@ class HTTPClient(object):
     def get_headers(self, method, url_data, args=None):
         request = "%s %s HTTP/1.1\r\n" %(method, url_data.path)
         request += "Host: %s\r\n" %(url_data.hostname)
-        #request += "Content-Length: 0\r\n"
-        request += "Connection: Close\r\n"
-#        request += "Connection: Keep-Alive\r\n"
-#        request += "Accept: */*\r\n" 
+        request += "Connection: Close\r\n" 
         if args is not None:
             params = urllib.urlencode(args)
-            request += "Content-Type: application/x-www-form-urlencoded\r\n"
+            request += "Content-Type: "
+            request += "application/x-www-form-urlencoded\r\n"
             request += "Content-Length: %d\r\n" %(len(params))
             request += "\r\n%s\r\n" %(params)
         request += "\r\n"
@@ -79,14 +72,11 @@ class HTTPClient(object):
     def get_body(self, data):
         return data.split("\r\n\r\n")[1]
 
-
-
     # read everything from the socket
     def recvall(self, sock):
         buffer = bytearray()
         done = False
         while not done:
-            #sock.settimeout(1)
             part = sock.recv(1024)
             if (part):
                 buffer.extend(part)
@@ -100,7 +90,6 @@ class HTTPClient(object):
         url_data = myParseUrl(url)
         connection = self.connect(url_data.hostname, url_data.port)
         header = self.get_headers("GET", url_data)
-        ####TODO add try
         connection.sendall(header)
         response = self.recvall(connection)
         code = self.get_code(response)
@@ -127,6 +116,7 @@ class HTTPClient(object):
         else:
             return self.GET( url, args )
     
+
 if __name__ == "__main__":
     client = HTTPClient()
     command = "GET"
